@@ -1,0 +1,21 @@
+[sources.abc]
+type = "shadowsocks"
+urls = [
+    "example.com"
+]
+
+[sources]
+v2go = { type = "v2ray", urls = [
+    "example.org",
+    "example.net",
+] }
+
+[requests]
+requestAll = false # request all urls and check if same (otherwise only request one)
+useragent = "" # user agent, can be empty
+forceParse = false # parse even request failed
+
+[output.primary]
+path = "primaryoutput.yaml"
+type = "clash"
+skipUnsupported = true # skip server with unsupport features

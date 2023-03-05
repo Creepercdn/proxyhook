@@ -16,6 +16,7 @@ import requests
 import tomlkit
 import coloredlogs
 import requests.adapters
+from requests.exceptions import ConnectionError
 
 from datatypes.server import *
 
@@ -41,7 +42,7 @@ def parse(data: str, source: dict[str, Any], prefix: str = '') -> list[Server]:
         parserlib = importlib.import_module(
             "parsers.{}".format(source['type']))
     except ModuleNotFoundError:
-        log.fatal("Fatal to import parser library")
+        log.fatal("Fatal to import parser library", exc_info=True)
         return []
     result: list[Server] = []
 
@@ -71,7 +72,7 @@ def write(data: list[Server], type: str, skipUnsupported: bool) -> str:
         writerlib = importlib.import_module(
             "writers.{}".format(type))
     except ModuleNotFoundError:
-        log.fatal("Fatal to import writer library")
+        log.fatal("Fatal to import writer library", exc_info=True)
         return ''
 
     return writerlib.write(data, skipUnsupported)
@@ -111,12 +112,16 @@ def main():
             if config["requests"]["useragent"]:  # type: ignore
                 # type: ignore
                 headers["user-agent"] = str(config["requests"]["useragent"])
-            
-            response = requests.get(url, headers=headers, stream=True)
+
+            response = None
+            try:
+                response = requests.get(url, headers=headers, stream=True)
+            except ConnectionError:
+                log.error("Failed to request", exc_info=True)
             log.info("Response: {}".format(repr(response)))
             # log.debug("Data: {}".format(response.text))
 
-            if response.ok or config["requests"]['forceParse']:  # type: ignore
+            if response and (response.ok or config["requests"]['forceParse']):  # type: ignore
                 currenthash = hash(response.text)
                 if hashValue is not None and hashValue != currenthash:
                     log.error(
